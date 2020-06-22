@@ -36,12 +36,13 @@ spus <- read.csv("../phd/data/OrchardInfo/LodgepoleSPUs.csv") %>%
 
 pt <- phen %>%
     group_by(Sex, Year, Site, Orchard, Clone, Tree, X, Y) %>%
-    mutate(First_RF = min(DoY), Last_RF = max(DoY)) %>% # calculate first and last RF that reflect inference
-    select(Sex, Year, Site, Orchard, Clone, Tree, X, Y, contains("_RF")) %>%
+    mutate(firstflower = min(DoY), lastflower = max(DoY)) %>% # calculate first and last RF that reflect inference
+    select(Sex, Year, Site, Orchard, Clone, Tree, X, Y, contains("flower")) %>%
     distinct() %>%
-    pivot_longer(cols = contains("_RF"), names_to = "side", values_to = "DoY") %>%
+    pivot_longer(cols = contains("flower"), names_to = "side", values_to = "DoY") %>%
     left_join(forcing) %>% # add forcing
-    left_join(spus) # add names for provenances
+    left_join(spus) %>% # add names for provenances
+    distinct()
 
 
 
@@ -91,7 +92,7 @@ ggplot(filter(pt, Year %in% c(2006, 2008, 2010, 2011)), aes(x = Site, y=sum_forc
     theme_bw() +
     theme(legend.position = "none")
 
-# What is the relationship between length of the forcing period and days observed?
+# What is the relationship between length of the (observed) forcing period and days observed?
 
 observation_bias <- phen %>%
     group_by(Year, Site, Sex, Orchard) %>%
@@ -116,27 +117,42 @@ ggplot(pt, aes(x=sum_forcing, y = Sex, color=side)) +
 
 
 # get full range and 10-90% quantile
-flowerforce <- pt %>%
+splitflower <- pt %>%
     filter(!is.na(sum_forcing)) %>%
+    ungroup() %>%
     group_by(Sex) %>%
-    summarise(lower = min(sum_forcing), upper = max(sum_forcing), range = upper-lower, lower10 = quantile(sum_forcing, 0.1), upper90 = quantile(sum_forcing, 0.9), range90 = upper90-lower10)
+    split(.$side)
+
+starts <- splitflower$firstflower %>%
+    summarise(start = min(sum_forcing), start20=quantile(sum_forcing, 0.2))
+
+ends <- splitflower$lastflower %>%
+    summarise(end = max(sum_forcing), end80 = quantile(sum_forcing, 0.8))
+
+flowerforce <- full_join(starts, ends) %>%
+    mutate(full_range = end-start, range80 = end80 - start20)
+
 
 # extract dates when trees will be flowering
 
-ff90 <- flowerforce %>%
-    select(Sex, lower10, upper90)
+ff80 <- flowerforce %>%
+    select(Sex, start20, end80)
 
 mforce <- forcing %>%
-    filter(sum_forcing > ff90$lower10[2] & sum_forcing < ff90$upper90[2]) %>%
+    filter(sum_forcing > ff80$start20[2] & sum_forcing < ff80$end80[2]) %>%
     mutate(Sex = "MALE")
 
 fforce <- forcing %>%
-    filter(sum_forcing > ff90$lower10[1] & sum_forcing < ff90$upper90[1]) %>%
+    filter(sum_forcing > ff80$start20[2] & sum_forcing < ff80$end80[2]) %>%
     mutate(Sex = "FEMALE")
 
-force <- full_join(mforce, fforce)
+force <- full_join(mforce, fforce) %>%
+    group_by(Year, Site)
 
-ggplot(force, aes(x=DoY, y=sum_forcing))
+ggplot(force, aes(x=DoY, y=sum_forcing, color=Site, group=interaction(Year, Site))) +
+    geom_line(alpha=0.7) +
+    ggtitle("Forcing and Day of Year for flowering periods", subtitle = "For 1997-2011 at all sites")
+
 
 
 
