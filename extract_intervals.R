@@ -1,36 +1,26 @@
+# Calculate the flowering period for lodgepole pine - an interval for pollen shed and receptivity separately.
+
+# Determine the first date we knew a tree was flowering and the last date we knew a tree was flowering. Observations are sometimes end and always interval censored.
+# Calculate the very first and last flowering date
+# Calculate the 20th percentile of start dates and the 80th percentile of end dates
+# Calculate the full range and the 80% range
+
+# There are also several visualizations of phenological period.
+
 library(dplyr)
 library(ggplot2)
 library(tidyr)
 
 library(flowers)
 
-phen <- phenology %>%
+phen <- flowers::phenology %>%
     filter(Phenophase_Derived==2) %>%
-    rename(state = Phenophase_Derived)
+    rename(state = Phenophase_Derived) # only consider days when trees are flowering
 forcing <- read.csv("../phenolology/data/all_clim_PCIC.csv", header=TRUE, stringsAsFactors = FALSE) %>%
-    filter(forcing_type=="ristos")
+    filter(forcing_type=="ristos") # only consider forcing units calculated based on work of Sarvas 1972
 spus <- read.csv("../phd/data/OrchardInfo/LodgepoleSPUs.csv") %>%
-    select(SPU_Name, Orchard)
+    select(SPU_Name, Orchard) # provenance information for each orchard in phen
 
-# Get *every* day of forcing data within flowering periods.
-# Phenology data collected at irregular intervals, but I want to represent the full distribution of forcing as well as I can.
-
-# unique groups in the phenology data
-# phen_groups <- phen %>%
-#     select(Sex, Year, Site, Orchard, Clone, Tree, X, Y) %>%
-#     distinct()
-
-# pt <- phen %>%
-#     # filter forcing data to only include days when trees were flowering
-#     select(Year, Site, First_RF, Last_RF) %>%
-#     group_by(Year, Site) %>%
-#     distinct() %>%
-#     mutate(First_RF = min(First_RF), Last_RF = max(Last_RF)) %>%
-#     left_join(forcing) %>%
-#     filter(DoY >= First_RF & DoY <= Last_RF) %>%
-#     select(-contains("_RF")) %>%
-#     # add phenology metadata
-#     left_join(phen_groups)
 
 # Phenology recorded at irregular intervals. Turn it into day ranges of known flowering and connect to the forcing at those days.
 
@@ -46,23 +36,29 @@ pt <- phen %>%
 
 
 
-# plot the distribution of forcing for
-ggplot(pt, aes(x = Site, y=sum_forcing, colour = Sex)) +
-    geom_line(size=1) +
-    theme_classic() +
-    coord_flip() +
-    facet_grid(Sex ~ .) +
-    scale_color_viridis_d(option="B", begin = 0.1, end=0.5) +
-    ggtitle("Accumulated forcing by Site")
+# plot the distribution of forcing
 
-ggplot(pt, aes(x = SPU_Name, y=sum_forcing, colour = Sex)) +
-    geom_line(size=1) +
-    theme_classic() +
-    coord_flip() +
-    facet_grid(Sex ~ .) +
-    scale_color_viridis_d(option="B", begin= 0.1, end=0.5) +
-    ggtitle("Accumulated forcing by Provenance")
 
+# Accumulated forcing during flowering period
+ggplot(pt, aes(x=sum_forcing, fill=Site)) +
+    geom_density(alpha=0.5) +
+    facet_grid(Sex ~ .) +
+    ggtitle("Flowering forcing by Site")
+
+ggplot(pt, aes(x=sum_forcing, fill=SPU_Name)) +
+    geom_density(alpha=0.5) +
+    facet_grid(Sex ~ .) +
+    scale_fill_brewer(type="qual") +
+    ggtitle("Flowering forcing by Provenance")
+
+# Day of year for flowering
+ggplot(pt, aes(x=DoY, fill=Site)) +
+    geom_density(alpha=0.5) +
+    facet_grid(Sex ~ .) +
+    ggtitle("Flowering days")
+
+
+# Flowering by site and provenance
 ggplot(pt, aes(x = Site, y=sum_forcing, colour = Sex)) +
     geom_line(size=1) +
     theme_bw(base_size=13) +
@@ -84,6 +80,7 @@ ggplot(pt, aes(x = as.factor(Clone), y = sum_forcing, color= as.factor(Clone))) 
     ggtitle("Flowering by clone") +
     ylab("Clone")
 
+# Sampling has a pretty big impact on forcing.
 ggplot(filter(pt, Year %in% c(2006, 2008, 2010, 2011)), aes(x = Site, y=sum_forcing, color=as.factor(Year))) +
     geom_line(size=1) +
     coord_flip() +
@@ -107,16 +104,10 @@ ggplot(observation_bias, aes(x=census_days, y=length)) +
 
 # Choose an interval
 
-ggplot(pt, aes(x=sum_forcing, y = Sex, color=side)) +
-    geom_boxplot() +
-    #facet_grid(. ~ Sex) +
-    theme_bw() +
-    theme(legend.position = "bottom") +
-    scale_color_viridis_d(end = 0.8) +
-    ggtitle("")
 
 
-# get full range and 10-90% quantile
+
+# get full range and 20-80% quantile
 splitflower <- pt %>%
     filter(!is.na(sum_forcing)) %>%
     ungroup() %>%
@@ -132,26 +123,15 @@ ends <- splitflower$lastflower %>%
 flowerforce <- full_join(starts, ends) %>%
     mutate(full_range = end-start, range80 = end80 - start20)
 
+ggplot(pt, aes(x=sum_forcing, y = Sex, color=side)) +
+    geom_boxplot() +
+    geom_vline(xintercept = c(flowerforce$start20, flowerforce$end80), linetype=2) +
+    theme_classic(base_size=18) +
+    theme(legend.position = "bottom") +
+    scale_color_viridis_d(end = 0.8) +
+    ggtitle("")
 
-# extract dates when trees will be flowering
 
-ff80 <- flowerforce %>%
-    select(Sex, start20, end80)
-
-mforce <- forcing %>%
-    filter(sum_forcing > ff80$start20[2] & sum_forcing < ff80$end80[2]) %>%
-    mutate(Sex = "MALE")
-
-fforce <- forcing %>%
-    filter(sum_forcing > ff80$start20[2] & sum_forcing < ff80$end80[2]) %>%
-    mutate(Sex = "FEMALE")
-
-force <- full_join(mforce, fforce) %>%
-    group_by(Year, Site)
-
-ggplot(force, aes(x=DoY, y=sum_forcing, color=Site, group=interaction(Year, Site))) +
-    geom_line(alpha=0.7) +
-    ggtitle("Forcing and Day of Year for flowering periods", subtitle = "For 1997-2011 at all sites")
 
 
 
