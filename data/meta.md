@@ -1,4 +1,4 @@
-# meta for data
+# meta for flowerwhen/data
 
 `seed_orchard_site_coordinates.csv` location of seed orchard sites, formatted for ClimateNA
 

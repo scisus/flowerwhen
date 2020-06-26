@@ -5,3 +5,5 @@ Data downloaded from [Pacific Climate Impacts Consortium](https://www.pacificcli
 PNWNAmet (1945-2012)
 
 Please cite as Werner, A.T., Schnorbus, M.A., Shrestha, R.R., Cannon, A.J., Zwiers, F.W., Dayon G. and Anslow, F., 2019. A long-term, temporally consistent, gridded daily meteorological dataset for northwestern North America, Scientific Data, 6, 180299, doi:10.1038/sdata.2018.299.
+
+max and min temperatures.
