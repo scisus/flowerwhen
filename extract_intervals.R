@@ -42,14 +42,16 @@ pt <- phen %>%
 # Accumulated forcing during flowering period
 ggplot(pt, aes(x=sum_forcing, fill=Site)) +
     geom_density(alpha=0.5) +
-    facet_grid(Sex ~ .) +
-    ggtitle("Flowering forcing by Site")
+    facet_grid(Site ~ Sex) +
+    ggtitle("Flowering forcing by Site") +
+    theme(legend.position = "bottom")
 
 ggplot(pt, aes(x=sum_forcing, fill=SPU_Name)) +
     geom_density(alpha=0.5) +
-    facet_grid(Sex ~ .) +
+    facet_grid(SPU_Name ~ Sex) +
     scale_fill_brewer(type="qual") +
-    ggtitle("Flowering forcing by Provenance")
+    ggtitle("Flowering forcing by Provenance") +
+    theme(legend.position = "bottom")
 
 # Day of year for flowering
 ggplot(pt, aes(x=DoY, fill=Site)) +
