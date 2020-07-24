@@ -1,0 +1,32 @@
+---
+title: "Forcing unit intervals for lodgepole pine flowering"
+author: "Susannah Tysor"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output: 
+  html_document:
+    theme: flatly
+    toc: true
+    toc_float:
+      collapsed: false
+      smooth_scroll: true
+---
+
+How much forcing do lodgepole pine need to become receptive to pollen and shed pollen? 
+
+How much additional forcing is required for them to finish flowering?
+
+Phenology data is from 15 years of data at 7 seed orchards. Climate data to calculate forcing units are from PCIC daily gridded data and corrected with monthly ClimateNA data for each site. Forcing units were calculated according to Risto Sarvas's work and summed each day from January 1.
+
+In the script `extract_intervals.R`, I
+
+1) determined the first date we knew a tree was flowering and the last date we knew a tree was flowering. Observations are sometimes end and always interval censored.
+2) Calculate the very first and last flowering date
+3) Calculate the 20th percentile of start dates and the 80th percentile of end dates
+4) Calculate the full range and the 80% range
+
+```{r}
+source('extract_intervals.R')
+```
+
+
+
