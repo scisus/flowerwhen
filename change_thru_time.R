@@ -26,7 +26,8 @@ force <- full_join(mforce, fforce) %>% # full period of forcing for all sites
 
 ggplot(force, aes(x=sum_forcing, y=DoY, color=Site, group=interaction(Year, Site))) +
     geom_line(alpha=0.7) +
-    ggtitle("Forcing and Day of Year for flowering periods", subtitle = "For 1997-2011 at all sites")
+    ggtitle("Forcing and Day of Year for flowering periods", subtitle = "For 1997-2011 at all sites") +
+    theme_bw(base_size=18)
 
 # Flowering period
 ggplot(force, aes(x=as.factor(Year), y=DoY, colour=Year)) +
