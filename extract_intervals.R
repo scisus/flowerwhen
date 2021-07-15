@@ -56,7 +56,7 @@ ggplot(pt, aes(x=sum_forcing, fill=SPU_Name)) +
 # Day of year for flowering
 ggplot(pt, aes(x=DoY, fill=Site)) +
     geom_density(alpha=0.5) +
-    facet_grid(Sex ~ .) +
+    facet_grid(Site ~ Sex) +
     ggtitle("Flowering days")
 
 
